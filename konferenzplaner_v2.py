@@ -12,7 +12,7 @@ import time
 import re
 
 st.set_page_config(layout="wide")
-st.title("📊 Konferenzplaner")
+st.title("📊 Konferenzplaner (V2)")
 
 # Session State initialisieren (nur für Plan 1)
 if "df_plan_1" not in st.session_state:
@@ -40,7 +40,7 @@ with st.sidebar:
 
 # Copyright-Vermerk
     st.markdown("---")
-    st.markdown("<p style='font-size: 12px; color: #666;'>\u00A9 2025 Katharineum zu Lübeck</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 12px; color: #666;'>\u00A9 2025 N. Klietsch</p>", unsafe_allow_html=True)
 
 # Funktion zur Erstellung eines Konferenzplans
 def erstelle_konferenzplan(df_lehrer_filtered, klassenlehrer_map_full, plan_nummer, startzeit=14):
