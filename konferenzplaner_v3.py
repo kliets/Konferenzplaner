@@ -293,7 +293,7 @@ def erstelle_konferenzplan(df_lehrer_filtered, klassenlehrer_map_full, plan_numm
 if lehrer_file and klassenlehrer_file:
     # Lehrer-Klassen-Daten verarbeiten
     try:
-        df_lehrer_raw = pd.read_csv(lehrer_file, sep=';', header=None)
+        df_lehrer_raw = pd.read_csv(lehrer_file, sep=None, engine='python', header=None, on_bad_lines='skip')
         
         # Spaltennamen setzen basierend auf Anzahl der Spalten
         if len(df_lehrer_raw.columns) >= 6:
