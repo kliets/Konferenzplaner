@@ -12,6 +12,6 @@ App zum Erstellen eines Konferenzplanes
 4. Gegebenenfalls: Einzelne Auflistungen im jeweiligen Klappmenü überprüfen
 5. Download der editieren oder der fertigen PDF-Datei am Seitenende
 
-# [Link zum Konferenzplaner](https://konferenzplaner-zmdgfepmgwwp4hyty9cft5.streamlit.app/)
+[Link zum Konferenzplaner](https://konferenzplaner-zmdgfepmgwwp4hyty9cft5.streamlit.app/)
 
 
