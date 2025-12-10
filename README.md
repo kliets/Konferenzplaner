@@ -3,7 +3,7 @@ App zum Erstellen eines Konferenzplanes
 
 ## Voraussetzungen zur Nutzung:
 1. .csv-Datei Lehrer-Klassen-Zuordnung (Download aus School-SH)
-3. .csv-Datei Klassenlehrerzuordnung (Download aus School-SH)
+2. .csv-Datei Klassenlehrerzuordnung (Download aus School-SH)
 
 ## Anleitung:
 1. Beide .csv-Dateien im Seitenmenü hochladen
