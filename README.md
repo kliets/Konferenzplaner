@@ -1,6 +1,6 @@
 ## Zweck: 
 App zum Erstellen eines Konferenzplanes <br>
-[Link zum Konferenzplaner](https://konferenzplaner-sh-2ptqhua8llg7mgfvr2haka.streamlit.app)
+[Link zum Konferenzplaner](https://konferenzplaner-sh.streamlit.app)
 
 ## Downloads:
 1. .csv-Datei Lehrer-Klassen-Zuordnung (z.B. Download aus School-SH)
@@ -11,7 +11,7 @@ App zum Erstellen eines Konferenzplanes <br>
 4. Beide Dateien (aus 1. und 2.) dort hochladen, starten und wieder herunterladen (-> im folgenden als pseudonymisierte .csv bezeichnet). Dienst nicht schließen.
 
 ## Anleitung:
-1. Öffnen des Konferenzplaner-Tools: [Link zum Konferenzplaner](https://konferenzplaner-sh-2ptqhua8llg7mgfvr2haka.streamlit.app)
+1. Öffnen des Konferenzplaner-Tools: [Link zum Konferenzplaner](https://konferenzplaner-sh.streamlit.app)
 2. Beide (idealerweise pseudonymisierte) .csv-Dateien im Seitenmenü hochladen
 3. Unter Einstellungen die gewünschten Einstellungen vornehmen (falls andere als Standardeinstellungen)
 4. Konferenzplan erstellen 
