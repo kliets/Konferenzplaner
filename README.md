@@ -3,8 +3,8 @@ App zum Erstellen eines Konferenzplanes <br>
 [Link zum Konferenzplaner](https://konferenzplaner-sh-2ptqhua8llg7mgfvr2haka.streamlit.app)
 
 ## Downloads:
-1. .csv-Datei Lehrer-Klassen-Zuordnung (Download aus School-SH)
-2. .csv-Datei Klassenlehrerzuordnung (Download aus School-SH)
+1. .csv-Datei Lehrer-Klassen-Zuordnung (z.B. Download aus School-SH)
+2. .csv-Datei Klassenlehrerzuordnung (z.B. Download aus School-SH)
 
 ## (Gegebenenfalls Pseudonymisierung, falls die Lehrerkürzel nicht ausreichen:)
 3. Download des Pseudonymisierungstools und öffnen im Browser (z.B. Safari).
