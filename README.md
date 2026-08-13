@@ -1,5 +1,5 @@
 ## Zweck: 
-App zum Erstellen eines Konferenzplanes
+App zum Erstellen eines Konferenzplanes <br>
 [Link zum Konferenzplaner](https://konferenzplaner-sh-2ptqhua8llg7mgfvr2haka.streamlit.app)
 
 ## Downloads:
