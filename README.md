@@ -17,6 +17,6 @@ App zum Erstellen eines Konferenzplanes
 5. Download der gewünschten editierbaren oder der fertigen PDF-Datei am Seitenende
 6. Hochladen ins Pseudonymisierungstool zur Wiederherstellung der Kürzel. Fertig.
 
-[Link zum Konferenzplaner](https://konferenzplaner-zmdgfepmgwwp4hyty9cft5.streamlit.app/)
+[Link zum Konferenzplaner](https://konferenzplaner-sh-2ptqhua8llg7mgfvr2haka.streamlit.app)
 
 
