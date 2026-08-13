@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Kürzel-Pseudonymisierung</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --border: #e2e2df;
+    --text: #222220;
+    --text-muted: #6b6b68;
+    --ok: #1a7f4e;
+    --warn: #b45309;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    line-height: 1.55;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 0.25rem; }
+  .sub { color: var(--text-muted); margin-bottom: 2rem; font-size: 14px; }
+  .privacy {
+    background: #eef6f0; border: 1px solid #cfe6d6; color: #1a5c37;
+    padding: 0.75rem 1rem; border-radius: 8px; font-size: 13.5px; margin-bottom: 2rem;
+  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 0.6rem 1.1rem; cursor: pointer; font-size: 14.5px; font-weight: 500;
+    color: var(--text-muted); border-bottom: 2px solid transparent; user-select: none;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.25rem 1.4rem; margin-bottom: 1.25rem;
+  }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 0.9rem; }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+    color: #fff; font-size: 12px; font-weight: 700; margin-right: 8px;
+  }
+  input[type="file"] {
+    display: block; width: 100%; font-size: 13.5px; padding: 0.6rem;
+    border: 1px dashed var(--border); border-radius: 8px; background: #fafaf9;
+  }
+  .filehint { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+  button {
+    background: var(--accent); color: #fff; border: none; border-radius: 7px;
+    padding: 0.65rem 1.3rem; font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-top: 1rem;
+  }
+  button:hover { background: var(--accent-dark); }
+  button:disabled { background: #b9c4d6; cursor: not-allowed; }
+  button.linklike {
+    background: none; color: var(--accent); padding: 0; margin: 0; font-size: 13px;
+    font-weight: 500; text-decoration: underline;
+  }
+  button.linklike:hover { background: none; color: var(--accent-dark); }
+  .log {
+    margin-top: 1rem; font-size: 13.5px; background: #f5f5f3; border-radius: 7px;
+    padding: 0.8rem 1rem; white-space: pre-wrap; display: none;
+  }
+  .log.show { display: block; }
+  .log .ok { color: var(--ok); }
+  .log .warn { color: var(--warn); }
+  .downloads { margin-top: 0.9rem; display: flex; flex-direction: column; gap: 6px; }
+  .downloads a {
+    font-size: 13.5px; color: var(--accent); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    display: flex; align-items: center; justify-content: space-between; background: #fafaf9;
+  }
+  .downloads a:hover { border-color: var(--accent); }
+  .secret { border-color: #f0c36b !important; background: #fff9ec !important; color: #92610a !important; }
+  table.mapping { width: 100%; border-collapse: collapse; margin-top: 0.9rem; font-size: 13px; }
+  table.mapping th, table.mapping td { border-bottom: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+  .mapping-wrap { max-height: 220px; overflow-y: auto; margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 7px; }
+  .status-box {
+    font-size: 13.5px; padding: 0.7rem 0.9rem; border-radius: 7px; margin-bottom: 0.7rem;
+  }
+  .status-active { background: #eaf3ff; border: 1px solid #bcd9fb; color: #14508f; }
+  .status-none { background: #f5f5f3; border: 1px solid var(--border); color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<h1>Kürzel-Pseudonymisierung</h1>
+<p class="sub">Für Tabellen mit Lehrer-Kürzeln — CSV, Excel, LibreOffice Calc und PDF</p>
+
+<div class="privacy">
+ Tabellen-Inhalte bleiben immer lokal in diesem Browserfenster — es werden keine Daten hochgeladen oder an einen Server geschickt.  Die Seite lädt beim Öffnen ein paar technische Hilfsbibliotheken aus dem Internet — dafür ist einmalig eine Internetverbindung nötig. Die Zuordnungstabelle wird nur im Arbeitsspeicher dieses Browser-Tabs gehalten und verschwindet automatisch, sobald du die Seite schließt oder neu lädst.
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="pseudo">1. Pseudonymisieren</div>
+  <div class="tab" data-tab="reident">2. Zurückübersetzen</div>
+</div>
+
+<div class="panel active" id="panel-pseudo">
+  <div class="card">
+    <h2><span class="step-num">1</span>Tabelle(n) auswählen</h2>
+    <input type="file" id="pseudo-files" accept=".csv,.xlsx,.xls,.ods" multiple>
+    <div class="filehint">
+      CSV, Excel (.xlsx/.xls) oder LibreOffice Calc (.ods) — auch mehrere Dateien gleichzeitig möglich. Gleiches Kürzel bekommt überall dasselbe Pseudonym.<br>
+      Numbers-Dateien (.numbers): bitte vorher in Numbers exportieren als Excel oder CSV (Ablage → Exportieren nach → Excel/CSV), da Numbers-Dateien im Browser nicht gelesen werden können.
+    </div>
+    <button id="pseudo-run" disabled>Pseudonymisieren</button>
+    <div class="log" id="pseudo-log"></div>
+    <div class="downloads" id="pseudo-downloads"></div>
+    <div id="pseudo-mapping"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-reident">
+  <div class="card">
+    <h2><span class="step-num">1</span>Zuordnungstabelle</h2>
+    <div id="reident-map-status" class="status-box status-none">Noch keine Zuordnung geladen. Entweder erst Schritt 1 in diesem Tab ausführen, oder eine "zuordnung_GEHEIM.csv" hochladen.</div>
+    <div id="reident-map-upload">
+      <input type="file" id="reident-map" accept=".csv">
+      <div class="filehint">Die Datei "zuordnung_GEHEIM.csv" aus Schritt 1 (Pseudonymisieren).</div>
+    </div>
+    <button type="button" class="linklike" id="reident-map-toggle" style="display:none;">Andere Zuordnungsdatei verwenden</button>
+    <button type="button" class="linklike" id="reident-map-clear" style="display:none;">Zuordnung aus dem Speicher entfernen</button>
+  </div>
+  <div class="card">
+    <h2><span class="step-num">2</span>Tabelle(n) mit Pseudonymen laden</h2>
+    <input type="file" id="reident-files" accept=".csv,.xlsx,.xls,.ods,.pdf" multiple>
+    <div class="filehint">
+      Die von der Lernplattform heruntergeladene(n) Datei(en) mit "Lehrer1", "Lehrer2", ... — CSV, Excel (.xlsx/.xls), LibreOffice Calc (.ods) oder PDF.<br>
+      Kürzel direkt vor "(KL)" (z. B. "DRE (KL)") werden in xlsx-Dateien automatisch fett dargestellt.
+    </div>
+    <button id="reident-run" disabled>Zurückübersetzen</button>
+    <div class="log" id="reident-log"></div>
+    <div class="downloads" id="reident-downloads"></div>
+  </div>
+</div>
+
+<script>
+
+function detectDelimiter(text) {
+  const firstLine = text.split(/\r?\n/)[0];
+  const commas = (firstLine.match(/,/g) || []).length;
+  const semis = (firstLine.match(/;/g) || []).length;
+  return semis > commas ? ';' : ',';
+}
+
+function parseCSV(text, delimiter) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQuotes = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delimiter) { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  if (rows.length && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
+  return rows;
+}
+
+function toCSV(rows, delimiter) {
+  return rows.map(r => r.map(cell => {
+    if (cell.includes(delimiter) || cell.includes('"') || cell.includes('\n')) {
+      return '"' + cell.replace(/"/g, '""') + '"';
+    }
+    return cell;
+  }).join(delimiter)).join('\r\n');
+}
+
+function isKuerzel(cell) {
+  const c = cell.trim();
+  if (!c) return false;
+  return /^[A-ZÄÖÜ]{2,6}(-[A-ZÄÖÜ]{1,6})?$/.test(c);
+}
+
+function getExt(filename) {
+  const m = /\.([a-z0-9]+)$/i.exec(filename);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function decodeXmlEntities(s) {
+  return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+}
+function encodeXmlEntities(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+const BOOKTYPE = { xls: 'biff8' };
+const MIME = {
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls: 'application/vnd.ms-excel',
+  ods: 'application/vnd.oasis.opendocument.spreadsheet',
+  csv: 'text/csv;charset=utf-8',
+  pdf: 'application/pdf'
+};
+
+
+function splitKLRuns(text) {
+  const re = /[A-ZÄÖÜ]{2,6}(?=\s\(KL\))/g;
+  const runs = [];
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) runs.push({ text: text.slice(last, m.index), bold: false });
+    runs.push({ text: m[0], bold: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) runs.push({ text: text.slice(last), bold: false });
+  return runs;
+}
+
+function runsToRichTextXml(runs) {
+  return runs.map(r => {
+    const t = '<t xml:space="preserve">' + encodeXmlEntities(r.text) + '</t>';
+    return r.bold ? '<r><rPr><b/></rPr>' + t + '</r>' : '<r>' + t + '</r>';
+  }).join('');
+}
+
+
+function injectBoldForKLMarker(xml) {
+  xml = xml.replace(/<is>\s*<t(?:\s[^>]*)?>([^<]*)<\/t>\s*<\/is>/g, (match, text) => {
+    const decoded = decodeXmlEntities(text);
+    const runs = splitKLRuns(decoded);
+    if (runs.length <= 1) return match;
+    return '<is>' + runsToRichTextXml(runs) + '</is>';
+  });
+  xml = xml.replace(/<si>\s*<t(?:\s[^>]*)?>([^<]*)<\/t>\s*<\/si>/g, (match, text) => {
+    const decoded = decodeXmlEntities(text);
+    const runs = splitKLRuns(decoded);
+    if (runs.length <= 1) return match;
+    return '<si>' + runsToRichTextXml(runs) + '</si>';
+  });
+  return xml;
+}
+
+function hasKLPattern(rows) {
+  const re = /[A-ZÄÖÜ]{2,6}\s\(KL\)/;
+  return rows.some(row => row.some(cell => re.test(cell)));
+}
+
+function excelColumnName(n) {
+  let s = '';
+  n += 1;
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+
+async function appendSheetToXlsx(xlsxTable, sheetName, rows) {
+  const zip = xlsxTable.zip;
+
+  const existingSheetNums = Object.keys(zip.files)
+    .map(n => { const m = /^xl\/worksheets\/sheet(\d+)\.xml$/.exec(n); return m ? parseInt(m[1], 10) : null; })
+    .filter(n => n !== null);
+  const nextNum = existingSheetNums.length ? Math.max(...existingSheetNums) + 1 : 1;
+  const newSheetFile = 'xl/worksheets/sheet' + nextNum + '.xml';
+
+  let rowsXml = '';
+  let maxCol = 0;
+  rows.forEach((row, r) => {
+    let cellsXml = '';
+    row.forEach((cellVal, c) => {
+      maxCol = Math.max(maxCol, c);
+      const ref = excelColumnName(c) + (r + 1);
+      const text = cellVal === undefined || cellVal === null ? '' : String(cellVal);
+      if (text === '') { cellsXml += '<c r="' + ref + '"/>'; return; }
+      cellsXml += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + encodeXmlEntities(text) + '</t></is></c>';
+    });
+    rowsXml += '<row r="' + (r + 1) + '">' + cellsXml + '</row>';
+  });
+  const dimRef = 'A1:' + excelColumnName(maxCol) + Math.max(1, rows.length);
+  const sheetXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<dimension ref="' + dimRef + '"/><sheetData>' + rowsXml + '</sheetData></worksheet>';
+  zip.file(newSheetFile, injectBoldForKLMarker(sheetXml));
+  xlsxTable.targetFiles.push(newSheetFile);
+
+  const relsPath = 'xl/_rels/workbook.xml.rels';
+  let relsXml = await zip.file(relsPath).async('string');
+  const existingRids = [...relsXml.matchAll(/Id="rId(\d+)"/g)].map(m => parseInt(m[1], 10));
+  const nextRid = existingRids.length ? Math.max(...existingRids) + 1 : 1;
+  const newRid = 'rId' + nextRid;
+  relsXml = relsXml.replace('</Relationships>',
+    '<Relationship Id="' + newRid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + nextNum + '.xml"/></Relationships>');
+  zip.file(relsPath, relsXml);
+
+  const wbPath = 'xl/workbook.xml';
+  let wbXml = await zip.file(wbPath).async('string');
+  const existingSheetIds = [...wbXml.matchAll(/sheetId="(\d+)"/g)].map(m => parseInt(m[1], 10));
+  const nextSheetId = existingSheetIds.length ? Math.max(...existingSheetIds) + 1 : 1;
+  const safeName = encodeXmlEntities(sheetName.replace(/[:\\/?*[\]]/g, ' ')).slice(0, 31);
+  wbXml = wbXml.replace('</sheets>',
+    '<sheet name="' + safeName + '" sheetId="' + nextSheetId + '" r:id="' + newRid + '"/></sheets>');
+  zip.file(wbPath, wbXml);
+
+  const ctPath = '[Content_Types].xml';
+  let ctXml = await zip.file(ctPath).async('string');
+  ctXml = ctXml.replace('</Types>',
+    '<Override PartName="/xl/worksheets/sheet' + nextNum + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
+  zip.file(ctPath, ctXml);
+}
+
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.replace(/^﻿/, ''));
+    reader.onerror = reject;
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function readFileArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function addDownloadLink(container, filename, blob, secret) {
+  const wrap = document.createElement('a');
+  wrap.href = '#';
+  wrap.className = secret ? 'secret' : '';
+  wrap.innerHTML = '<span>' + filename + (secret ? ' — nicht weitergeben' : '') + '</span><span>Download</span>';
+  wrap.onclick = (e) => { e.preventDefault(); downloadBlob(filename, blob); };
+  container.appendChild(wrap);
+}
+
+function csvBlob(text) {
+  return new Blob(['﻿' + text], { type: MIME.csv });
+}
+
+
+async function loadTable(file) {
+  const ext = getExt(file.name);
+  if (ext === 'csv') {
+    const text = await readFileText(file);
+    const delim = detectDelimiter(text);
+    return { kind: 'csv', rows: parseCSV(text, delim), delim, ext };
+  }
+  if (ext === 'xlsx' || ext === 'xlsm' || ext === 'ods') {
+    const buf = await readFileArrayBuffer(file);
+    const zip = await JSZip.loadAsync(buf);
+    const targetFiles = Object.keys(zip.files).filter(n =>
+      n === 'xl/sharedStrings.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(n) || n === 'content.xml'
+    );
+    return { kind: 'zip', zip, targetFiles, ext: ext === 'xlsm' ? 'xlsx' : ext };
+  }
+  if (ext === 'xls') {
+    const buf = await readFileArrayBuffer(file);
+    const wb = XLSX.read(buf, { type: 'array' });
+    return { kind: 'sheet', wb, ext };
+  }
+  throw new Error('Nicht unterstütztes Dateiformat: .' + ext);
+}
+
+async function forEachStringCell(table, callback) {
+  if (table.kind === 'csv') {
+    table.rows.forEach((row, r) => row.forEach((cell, c) => {
+      const result = callback(cell);
+      if (result !== undefined) table.rows[r][c] = result;
+    }));
+    return;
+  }
+  if (table.kind === 'sheet') {
+    table.wb.SheetNames.forEach(name => {
+      const ws = table.wb.Sheets[name];
+      if (!ws['!ref']) return;
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          if (cell && typeof cell.v === 'string') {
+            const result = callback(cell.v);
+            if (result !== undefined && result !== cell.v) { cell.v = result; delete cell.w; }
+          }
+        }
+      }
+    });
+    return;
+  }
+  if (table.kind === 'zip') {
+    for (const fname of table.targetFiles) {
+      const f = table.zip.file(fname);
+      if (!f) continue;
+      const content = await f.async('string');
+      let changed = false;
+      const newContent = content.replace(/>([^<]+)</g, (match, textContent) => {
+        if (!textContent.trim()) return match;
+        const decoded = decodeXmlEntities(textContent);
+        const result = callback(decoded);
+        if (result === undefined || result === decoded) return match;
+        changed = true;
+        return '>' + encodeXmlEntities(result) + '<';
+      });
+      if (changed) table.zip.file(fname, newContent);
+    }
+  }
+}
+
+async function tableToBlob(table, baseName) {
+  if (table.kind === 'csv') {
+    return { blob: csvBlob(toCSV(table.rows, table.delim)), name: baseName + '.csv' };
+  }
+  if (table.kind === 'sheet') {
+    const bookType = BOOKTYPE[table.ext] || 'xlsx';
+    const out = XLSX.write(table.wb, { bookType, type: 'array' });
+    return { blob: new Blob([out], { type: MIME[table.ext] || MIME.xlsx }), name: baseName + '.' + table.ext };
+  }
+  if (table.ext === 'xlsx') {
+    for (const fname of table.targetFiles) {
+      const f = table.zip.file(fname);
+      if (!f) continue;
+      const content = await f.async('string');
+      const newContent = injectBoldForKLMarker(content);
+      if (newContent !== content) table.zip.file(fname, newContent);
+    }
+  }
+  const blob = await table.zip.generateAsync({ type: 'blob', mimeType: MIME[table.ext] || MIME.xlsx });
+  return { blob, name: baseName + '.' + table.ext };
+}
+
+
+let pdfjsWorkerReadyPromise = null;
+function ensurePdfJsWorker() {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error('pdf.js konnte nicht geladen werden. Bitte prüfe deine Internetverbindung (die Bibliotheken werden beim ersten Öffnen dieser Seite von einem CDN geladen; danach läuft die eigentliche Verarbeitung lokal ohne Internet).');
+  }
+  if (!pdfjsWorkerReadyPromise) {
+    pdfjsWorkerReadyPromise = fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js')
+      .then(r => r.text())
+      .then(code => {
+        const blobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+        pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
+      });
+  }
+  return pdfjsWorkerReadyPromise;
+}
+
+async function reidentifyPdf(file, reverseMap, pattern) {
+  if (typeof PDFLib === 'undefined') {
+    throw new Error('pdf-lib konnte nicht geladen werden. Bitte prüfe deine Internetverbindung.');
+  }
+  await ensurePdfJsWorker();
+  const bufForRead = await readFileArrayBuffer(file);
+  const bufForWrite = bufForRead.slice(0);
+
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bufForRead) }).promise;
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const pdfDoc = await PDFDocument.load(bufForWrite);
+  const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  let treffer = 0;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pdfLibPage = pdfDoc.getPage(i - 1);
+
+    for (const item of textContent.items) {
+      pattern.lastIndex = 0;
+      if (!pattern.test(item.str)) continue;
+      pattern.lastIndex = 0;
+      const replacedStr = item.str.replace(pattern, m => { treffer++; return reverseMap[m]; });
+
+      const [a, b, , , e, f] = item.transform;
+      const fontSize = Math.hypot(a, b) || item.height || 12;
+      const width = item.width || (replacedStr.length * fontSize * 0.55);
+      const padTop = fontSize * 0.32;
+      const padBottom = fontSize * 0.28;
+
+      pdfLibPage.drawRectangle({
+        x: e - 0.5, y: f - padBottom,
+        width: width + 2, height: fontSize + padTop + padBottom,
+        color: rgb(1, 1, 1),
+      });
+      pdfLibPage.drawText(replacedStr, { x: e, y: f, size: fontSize, font: helv, color: rgb(0, 0, 0) });
+    }
+  }
+
+  const outBytes = await pdfDoc.save();
+  return { blob: new Blob([outBytes], { type: MIME.pdf }), treffer };
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  };
+});
+
+
+let activeMapping = null; // { KUERZEL: 'LehrerN', ... }
+
+function updateMapStatus() {
+  const status = document.getElementById('reident-map-status');
+  const toggle = document.getElementById('reident-map-toggle');
+  const clearBtn = document.getElementById('reident-map-clear');
+  const uploadBox = document.getElementById('reident-map-upload');
+  const manualFile = document.getElementById('reident-map').files[0];
+
+  if (manualFile) {
+    status.className = 'status-box status-active';
+    status.textContent = 'Manuell geladen: ' + manualFile.name;
+    toggle.style.display = 'none';
+    clearBtn.style.display = 'none';
+    uploadBox.style.display = 'block';
+  } else if (activeMapping) {
+    const n = Object.keys(activeMapping).length;
+    status.className = 'status-box status-active';
+    status.textContent = 'Zuordnung aus Schritt 1 dieser Sitzung wird verwendet (' + n + ' Kürzel). Kein erneutes Hochladen nötig.';
+    toggle.style.display = 'inline';
+    clearBtn.style.display = 'inline';
+    uploadBox.style.display = 'none';
+  } else {
+    status.className = 'status-box status-none';
+    status.textContent = 'Noch keine Zuordnung geladen. Entweder erst Schritt 1 in diesem Tab ausführen, oder eine "zuordnung_GEHEIM.csv" hochladen.';
+    toggle.style.display = 'none';
+    clearBtn.style.display = 'none';
+    uploadBox.style.display = 'block';
+  }
+  updateReidentBtn();
+}
+
+document.getElementById('reident-map-toggle').onclick = () => {
+  document.getElementById('reident-map-upload').style.display = 'block';
+  document.getElementById('reident-map-toggle').style.display = 'none';
+};
+
+document.getElementById('reident-map-clear').onclick = () => {
+  activeMapping = null;
+  updateMapStatus();
+};
+
+document.getElementById('reident-map').onchange = updateMapStatus;
+
+// ---------- Tab 1: Pseudonymisieren ----------
+const pseudoFilesInput = document.getElementById('pseudo-files');
+const pseudoRunBtn = document.getElementById('pseudo-run');
+pseudoFilesInput.onchange = () => { pseudoRunBtn.disabled = pseudoFilesInput.files.length === 0; };
+
+pseudoRunBtn.onclick = async () => {
+  const log = document.getElementById('pseudo-log');
+  const downloads = document.getElementById('pseudo-downloads');
+  const mappingDiv = document.getElementById('pseudo-mapping');
+  downloads.innerHTML = ''; mappingDiv.innerHTML = '';
+  log.classList.add('show');
+  log.textContent = 'Verarbeite Dateien ...';
+
+  const files = Array.from(pseudoFilesInput.files);
+  let tables;
+  try {
+    tables = await Promise.all(files.map(async f => ({ file: f, table: await loadTable(f) })));
+  } catch (e) {
+    log.textContent = 'Fehler beim Einlesen: ' + e.message;
+    return;
+  }
+
+  const kuerzelSet = new Set();
+  for (const { table } of tables) {
+    await forEachStringCell(table, cell => { if (isKuerzel(cell)) kuerzelSet.add(cell.trim()); });
+  }
+
+  if (kuerzelSet.size === 0) {
+    log.innerHTML = 'Es wurden keine Kürzel gefunden (reine Großbuchstaben-Zellen wie "PRE").';
+    return;
+  }
+
+  const sorted = [...kuerzelSet].sort();
+  const mapping = {};
+  sorted.forEach((k, i) => mapping[k] = 'Lehrer' + (i + 1));
+
+  let lines = [];
+  for (const { file, table } of tables) {
+    await forEachStringCell(table, cell => isKuerzel(cell) ? mapping[cell.trim()] : undefined);
+    const baseName = file.name.replace(/\.[a-z0-9]+$/i, '') + '_pseudonymisiert';
+    const { blob, name } = await tableToBlob(table, baseName);
+    addDownloadLink(downloads, name, blob, false);
+    lines.push('Erstellt: ' + name);
+  }
+
+  const mappingRows = [['Kuerzel', 'Pseudonym']].concat(
+    Object.entries(mapping).sort((a, b) => a[1].localeCompare(b[1], undefined, { numeric: true }))
+  );
+  const mappingCSV = toCSV(mappingRows, ',');
+  addDownloadLink(downloads, 'zuordnung_GEHEIM.csv', csvBlob(mappingCSV), true);
+  lines.push('Erstellt: zuordnung_GEHEIM.csv');
+
+  activeMapping = mapping;
+  updateMapStatus();
+
+  log.innerHTML = '<span class="ok">' + sorted.length + ' Kürzel pseudonymisiert.</span>\n' + lines.join('\n') +
+    '\n\n<span class="warn">Wichtig: "zuordnung_GEHEIM.csv" nicht hochladen oder weitergeben. Sie wird für diese Sitzung automatisch im Reiter "Zurückübersetzen" bereitgehalten (nur im Arbeitsspeicher, nicht dauerhaft gespeichert) — zur Sicherheit kannst du sie zusätzlich herunterladen, falls du in einer neuen Sitzung weitermachst.</span>';
+
+  const tableEl = document.createElement('div');
+  tableEl.className = 'mapping-wrap';
+  const tbl = document.createElement('table');
+  tbl.className = 'mapping';
+  tbl.innerHTML = '<tr><th>Kürzel</th><th>Pseudonym</th></tr>' +
+    sorted.map(k => `<tr><td>${k}</td><td>${mapping[k]}</td></tr>`).join('');
+  tableEl.appendChild(tbl);
+  mappingDiv.appendChild(tableEl);
+};
+
+// ---------- Tab 2: Zurückübersetzen ----------
+const reidentMapInput = document.getElementById('reident-map');
+const reidentFilesInput = document.getElementById('reident-files');
+const reidentRunBtn = document.getElementById('reident-run');
+function updateReidentBtn() {
+  const hasMap = reidentMapInput.files.length > 0 || !!activeMapping;
+  reidentRunBtn.disabled = !(hasMap && reidentFilesInput.files.length);
+}
+reidentFilesInput.onchange = updateReidentBtn;
+updateMapStatus();
+
+reidentRunBtn.onclick = async () => {
+  const log = document.getElementById('reident-log');
+  const downloads = document.getElementById('reident-downloads');
+  downloads.innerHTML = '';
+  log.classList.add('show');
+  log.textContent = 'Verarbeite ...';
+
+  let mapping;
+  if (reidentMapInput.files.length) {
+    const mapText = await readFileText(reidentMapInput.files[0]);
+    const mapDelim = detectDelimiter(mapText);
+    const mapRows = parseCSV(mapText, mapDelim);
+    const header = mapRows[0].map(h => h.trim().toLowerCase());
+    let kIdx = header.indexOf('kuerzel');
+    let pIdx = header.indexOf('pseudonym');
+    if (kIdx === -1) kIdx = 0;
+    if (pIdx === -1) pIdx = 1;
+    mapping = {};
+    for (let i = 1; i < mapRows.length; i++) {
+      const row = mapRows[i];
+      if (row.length < 2) continue;
+      mapping[row[kIdx].trim()] = row[pIdx].trim();
+    }
+  } else if (activeMapping) {
+    mapping = activeMapping;
+  } else {
+    log.textContent = 'Keine Zuordnungstabelle verfügbar.';
+    return;
+  }
+
+  const reverseMap = {};
+  Object.entries(mapping).forEach(([k, p]) => { reverseMap[p] = k; });
+
+  const pseudonymsSorted = Object.keys(reverseMap).sort((a, b) => b.length - a.length);
+  if (pseudonymsSorted.length === 0) {
+    log.textContent = 'Die Zuordnungstabelle enthält keine gültigen Einträge.';
+    return;
+  }
+
+  const files = Array.from(reidentFilesInput.files);
+  let lines = [];
+  let gesamtTreffer = 0;
+
+
+  const results = []; // { file, table, treffer, baseName }
+  for (const file of files) {
+    const ext = getExt(file.name);
+    const pattern = new RegExp('\\b(' + pseudonymsSorted.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'g');
+
+    if (ext === 'pdf') {
+      try {
+        const { blob, treffer } = await reidentifyPdf(file, reverseMap, pattern);
+        if (treffer === 0) {
+          lines.push(file.name + ': keine Pseudonyme gefunden, übersprungen.');
+          continue;
+        }
+        const name = file.name.replace(/\.[a-z0-9]+$/i, '') + '_zurueckuebersetzt.pdf';
+        addDownloadLink(downloads, name, blob, false);
+        lines.push('Erstellt: ' + name + ' (' + treffer + ' Ersetzungen)');
+        gesamtTreffer += treffer;
+      } catch (e) {
+        lines.push(file.name + ': Fehler beim PDF-Verarbeiten (' + e.message + ')');
+      }
+      continue;
+    }
+
+    let table;
+    try {
+      table = await loadTable(file);
+    } catch (e) {
+      lines.push(file.name + ': ' + e.message);
+      continue;
+    }
+
+    let treffer = 0;
+    await forEachStringCell(table, cell => {
+      pattern.lastIndex = 0;
+      const replaced = cell.replace(pattern, m => { treffer++; return reverseMap[m]; });
+      return replaced === cell ? undefined : replaced;
+    });
+
+    if (treffer === 0) {
+      lines.push(file.name + ': keine Pseudonyme gefunden, übersprungen.');
+      continue;
+    }
+
+    const baseName = file.name.replace(/\.[a-z0-9]+$/i, '') + '_zurueckuebersetzt';
+    results.push({ file, table, treffer, baseName });
+    gesamtTreffer += treffer;
+  }
+
+
+  const xlsxResult = results.find(r => r.table.kind === 'zip' && r.table.ext === 'xlsx');
+  for (const r of results) {
+    if (r.table.kind === 'csv' && hasKLPattern(r.table.rows)) {
+      if (xlsxResult) {
+        const sheetName = r.file.name.replace(/\.[a-z0-9]+$/i, '') + ' (KL fett)';
+        await appendSheetToXlsx(xlsxResult.table, sheetName, r.table.rows);
+        lines.push('Hinweis: "' + sheetName + '" wurde als zusätzlicher Reiter in "' + xlsxResult.baseName + '.xlsx" ergänzt (Fettdruck für "KL"-Kürzel, da CSV selbst keine Formatierung speichern kann).');
+      } else {
+        lines.push('Hinweis: "' + r.file.name + '" enthält "KL"-Kürzel, die fett dargestellt werden könnten — dafür bitte zusätzlich die zugehörige Excel-Datei im selben Durchgang hochladen (CSV selbst kann keine Formatierung speichern).');
+      }
+    }
+  }
+
+
+  for (const r of results) {
+    const { blob, name } = await tableToBlob(r.table, r.baseName);
+    addDownloadLink(downloads, name, blob, false);
+    lines.push('Erstellt: ' + name + ' (' + r.treffer + ' Ersetzungen)');
+  }
+
+  log.innerHTML = lines.join('\n') + '\n\n<span class="ok">Insgesamt ' + gesamtTreffer + ' Pseudonyme zurückübersetzt.</span>';
+};
+</script>
+
+</body>
+</html>
