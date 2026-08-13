@@ -20,5 +20,9 @@ App zum Erstellen eines Konferenzplanes <br>
 7. Hochladen ins Pseudonymisierungstool zur Wiederherstellung der Kürzel. Fertig.
 
 
+<br> 
+Eine ausführliche Anleitung folgt hier.
+
+
 
 
